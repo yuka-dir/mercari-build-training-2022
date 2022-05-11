@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"encoding/json"
 	"net/http"
 	"os"
 	"path"
@@ -21,6 +21,15 @@ type Response struct {
 	Message string `json:"message"`
 }
 
+type Items struct {
+	Items []Item `json:"items"`
+}
+
+type Item struct {
+	Name     string `json:"name"`
+	Category string `json:"category"`
+}
+
 func root(c echo.Context) error {
 	res := Response{Message: "Hello, world!"}
 	return c.JSON(http.StatusOK, res)
@@ -29,7 +38,8 @@ func root(c echo.Context) error {
 func addItem(c echo.Context) error {
 	// Get form data
 	name := c.FormValue("name")
-	c.Logger().Infof("Receive item: %s", name)
+	category := c.FormValue("category")
+	c.Logger().Infof("Receive item: %s %s", name, category)
 
 	message := fmt.Sprintf("item received: %s", name)
 	res := Response{Message: message}
@@ -38,30 +48,49 @@ func addItem(c echo.Context) error {
 	// // Create json file
 	f, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
-		c.Logger().Infof(err.Error())
+		c.Logger().Debugf(err.Error())
+		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
+
+	// // Close json file using defer
+	defer f.Close()
 
 	// // Read data to json file
-	raw_data, err := os.ReadFile("items.json")
+	items := []Item{}
+	save_items := Items{items}
+
+	read_items_byte, err := os.ReadFile("items.json")
 	if err != nil {
-		c.Logger().Infof(err.Error())
+		c.Logger().Debugf(err.Error())
+		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	var decode_data map[string]interface{}
-	json.Unmarshal([]byte(raw_data), &decode_data)
-
-	c.Logger().Infof("Mapping!!!: %s", fmt.Sprintf("%s", decode_data["test"])) // TODO: 後で消す
-	items := decode_data["items"].([]interface{})
-	c.Logger().Infof("\"name\": %s", fmt.Sprintf("%s", items[0].(map[string]interface{})["name"])) // TODO: 後で消す
-	c.Logger().Infof("\"category\": %s", fmt.Sprintf("%s", items[0].(map[string]interface{})["category"])) // TODO: 後で消す
-
-	// // Add data to json file
-
-	// // Close json file
-	if err := f.Close(); err != nil {
-		c.Logger().Infof(err.Error())
+	if len(read_items_byte) != 0 {
+		// // Parse read_items_byte
+		err = json.Unmarshal(read_items_byte, &save_items)
+		if err != nil {
+			c.Logger().Debugf(err.Error())
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
 	}
 
+	// // Add data to decode_data
+	append_item := Item{Name: name, Category: category}
+	save_items.Items = append(save_items.Items, append_item)
+
+	// // Set indent and encoding as JSON
+	encode_items, err := json.MarshalIndent(save_items, "", " ")
+	if err != nil {
+		c.Logger().Debugf(err.Error())
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	// // Write decode_data to json file
+	err = os.WriteFile("items.json", encode_items, 0644)
+	if err != nil {
+		c.Logger().Debugf(err.Error())
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 	return c.JSON(http.StatusOK, res)
 }
 
