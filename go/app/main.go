@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -32,6 +33,34 @@ func addItem(c echo.Context) error {
 
 	message := fmt.Sprintf("item received: %s", name)
 	res := Response{Message: message}
+
+	// Save data to items.json
+	// // Create json file
+	f, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE, 0755)
+	if err != nil {
+		c.Logger().Infof(err.Error())
+	}
+
+	// // Read data to json file
+	raw_data, err := os.ReadFile("items.json")
+	if err != nil {
+		c.Logger().Infof(err.Error())
+	}
+
+	var decode_data map[string]interface{}
+	json.Unmarshal([]byte(raw_data), &decode_data)
+
+	c.Logger().Infof("Mapping!!!: %s", fmt.Sprintf("%s", decode_data["test"])) // TODO: 後で消す
+	items := decode_data["items"].([]interface{})
+	c.Logger().Infof("\"name\": %s", fmt.Sprintf("%s", items[0].(map[string]interface{})["name"])) // TODO: 後で消す
+	c.Logger().Infof("\"category\": %s", fmt.Sprintf("%s", items[0].(map[string]interface{})["category"])) // TODO: 後で消す
+
+	// // Add data to json file
+
+	// // Close json file
+	if err := f.Close(); err != nil {
+		c.Logger().Infof(err.Error())
+	}
 
 	return c.JSON(http.StatusOK, res)
 }
