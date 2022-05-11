@@ -26,7 +26,7 @@ type Items struct {
 }
 
 type Item struct {
-	Name string `json:"name"`
+	Name     string `json:"name"`
 	Category string `json:"category"`
 }
 
@@ -38,10 +38,8 @@ func root(c echo.Context) error {
 func addItem(c echo.Context) error {
 	// Get form data
 	name := c.FormValue("name")
-	c.Logger().Infof("Receive item: %s", name)
-
 	category := c.FormValue("category")
-	c.Logger().Infof("Receive item: %s", category)
+	c.Logger().Infof("Receive item: %s %s", name, category)
 
 	message := fmt.Sprintf("item received: %s", name)
 	res := Response{Message: message}
@@ -50,7 +48,8 @@ func addItem(c echo.Context) error {
 	// // Create json file
 	f, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE, 0755)
 	if err != nil {
-		c.Logger().Infof(err.Error())
+		c.Logger().Debugf(err.Error())
+		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
 	// // Close json file using defer
@@ -60,35 +59,37 @@ func addItem(c echo.Context) error {
 	items := []Item{}
 	save_items := Items{items}
 
-	read_items_byte, err := os.ReadFile("items.json")  // read_items_byte is []byte
+	read_items_byte, err := os.ReadFile("items.json")
 	if err != nil {
-		c.Logger().Infof(err.Error())
+		c.Logger().Debugf(err.Error())
+		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	c.Logger().Infof(string(read_items_byte)) // TODO: 後で消す
 
 	if len(read_items_byte) != 0 {
-	// // Parse read_items_byte
+		// // Parse read_items_byte
 		err = json.Unmarshal(read_items_byte, &save_items)
 		if err != nil {
-			c.Logger().Infof(err.Error())
+			c.Logger().Debugf(err.Error())
+			return c.JSON(http.StatusInternalServerError, err.Error())
 		}
-		c.Logger().Infof(save_items.Items[0].Name) // TODO: 後で消す
 	}
 
 	// // Add data to decode_data
-	append_item := Item{ Name: name, Category: category}
+	append_item := Item{Name: name, Category: category}
 	save_items.Items = append(save_items.Items, append_item)
 
-	// // Set indent
+	// // Set indent and encoding as JSON
 	encode_items, err := json.MarshalIndent(save_items, "", " ")
 	if err != nil {
-		c.Logger().Infof(err.Error())
+		c.Logger().Debugf(err.Error())
+		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
 	// // Write decode_data to json file
 	err = os.WriteFile("items.json", encode_items, 0644)
 	if err != nil {
-		c.Logger().Infof(err.Error())
+		c.Logger().Debugf(err.Error())
+		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(http.StatusOK, res)
 }
