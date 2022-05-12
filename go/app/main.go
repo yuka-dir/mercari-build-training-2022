@@ -20,9 +20,26 @@ type Response struct {
 	Message string `json:"message"`
 }
 
+type Items struct {
+	Items []Item `json:"items"`
+}
+
+type Item struct {
+	Name     string `json:"name"`
+	Category string `json:"category"`
+}
+
 func root(c echo.Context) error {
 	res := Response{Message: "Hello, world!"}
 	return c.JSON(http.StatusOK, res)
+}
+
+func getItem(c echo.Context) error {
+	encoded_json, err := os.ReadFile("items.json")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	return c.JSONBlob(http.StatusOK, encoded_json)
 }
 
 func addItem(c echo.Context) error {
@@ -70,6 +87,7 @@ func main() {
 
 	// Routes
 	e.GET("/", root)
+	e.GET("/items", getItem)
 	e.POST("/items", addItem)
 	e.GET("/image/:itemImg", getImg)
 
