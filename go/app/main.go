@@ -15,6 +15,7 @@ import (
 
 const (
 	ImgDir = "image"
+	JsonFile = "items.json"
 )
 
 type Response struct {
@@ -37,8 +38,8 @@ func sendError(c echo.Context, err_message string) error {
 	return c.JSON(http.StatusInternalServerError, res)
 }
 
-func readJsonFile(file_name string) ([]byte, error) {
-	encoded_json, err := os.ReadFile(file_name)
+func readJsonFile() ([]byte, error) {
+	encoded_json, err := os.ReadFile(JsonFile)
 	if err != nil {
 		return encoded_json, err
 	}
@@ -51,7 +52,7 @@ func root(c echo.Context) error {
 }
 
 func getItem(c echo.Context) error {
-	encoded_json, err := readJsonFile("items.json")
+	encoded_json, err := readJsonFile()
 	if err != nil {
 		return sendError(c, err.Error())
 	}
@@ -80,7 +81,7 @@ func addItem(c echo.Context) error {
 	items := []Item{}
 	save_items := Items{items}
 
-	encoded_json, err := readJsonFile("items.json")
+	encoded_json, err := readJsonFile()
 	if err != nil {
 		return sendError(c, err.Error())
 	}
