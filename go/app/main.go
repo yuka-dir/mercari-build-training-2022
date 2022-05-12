@@ -11,6 +11,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+
+	"go/app/models"
 )
 
 const (
@@ -20,15 +22,6 @@ const (
 
 type Response struct {
 	Message string `json:"message"`
-}
-
-type Items struct {
-	Items []Item `json:"items"`
-}
-
-type Item struct {
-	Name     string `json:"name"`
-	Category string `json:"category"`
 }
 
 func sendError(c echo.Context, err_message string) error {
@@ -52,11 +45,16 @@ func root(c echo.Context) error {
 }
 
 func getItem(c echo.Context) error {
-	encoded_json, err := readJsonFile()
+	items, err := models.GetItems()
 	if err != nil {
 		return sendError(c, err.Error())
 	}
-	return c.JSONBlob(http.StatusOK, encoded_json)
+	db_items := models.Items{items}
+	if db_items.Items == nil {
+		res := Response{Message: "No Records Found"}
+		return c.JSON(http.StatusBadRequest, res)
+	}
+	return c.JSON(http.StatusOK, db_items)
 }
 
 func addItem(c echo.Context) error {
@@ -78,8 +76,8 @@ func addItem(c echo.Context) error {
 	defer f.Close()
 
 	// Read data to json file
-	items := []Item{}
-	save_items := Items{items}
+	items := []models.Item{}
+	save_items := models.Items{items}
 
 	encoded_json, err := readJsonFile()
 	if err != nil {
@@ -95,7 +93,7 @@ func addItem(c echo.Context) error {
 	}
 
 	// Add data to decode_data
-	append_item := Item{Name: name, Category: category}
+	append_item := models.Item{Name: name, Category: category}
 	save_items.Items = append(save_items.Items, append_item)
 
 	// Set indent and encoding as JSON
@@ -143,6 +141,9 @@ func main() {
 		AllowOrigins: []string{front_url},
 		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
 	}))
+
+	// Connect Database
+	models.ConnectDatabase()
 
 	// Routes
 	e.GET("/", root)
