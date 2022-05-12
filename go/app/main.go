@@ -31,7 +31,7 @@ type Item struct {
 }
 
 func sendError(c echo.Context, err_message string) error {
-	c.Logger().Debugf(err_message)
+	c.Logger().Errorf(err_message)
 	message := fmt.Sprintf("error: %s", err_message)
 	res := Response{Message: message}
 	return c.JSON(http.StatusInternalServerError, res)
