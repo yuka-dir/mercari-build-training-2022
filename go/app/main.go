@@ -15,6 +15,7 @@ import (
 
 const (
 	ImgDir = "image"
+	JsonFile = "items.json"
 )
 
 type Response struct {
@@ -37,9 +38,25 @@ func sendError(c echo.Context, err_message string) error {
 	return c.JSON(http.StatusInternalServerError, res)
 }
 
+func readJsonFile() ([]byte, error) {
+	encoded_json, err := os.ReadFile(JsonFile)
+	if err != nil {
+		return encoded_json, err
+	}
+	return encoded_json, nil
+}
+
 func root(c echo.Context) error {
 	res := Response{Message: "Hello, world!"}
 	return c.JSON(http.StatusOK, res)
+}
+
+func getItem(c echo.Context) error {
+	encoded_json, err := readJsonFile()
+	if err != nil {
+		return sendError(c, err.Error())
+	}
+	return c.JSONBlob(http.StatusOK, encoded_json)
 }
 
 func addItem(c echo.Context) error {
@@ -64,14 +81,14 @@ func addItem(c echo.Context) error {
 	items := []Item{}
 	save_items := Items{items}
 
-	read_items_byte, err := os.ReadFile("items.json")
+	encoded_json, err := readJsonFile()
 	if err != nil {
 		return sendError(c, err.Error())
 	}
 
-	// Parse read_items_byte
-	if len(read_items_byte) != 0 {
-		err = json.Unmarshal(read_items_byte, &save_items)
+	// Parse encoded_json
+	if len(encoded_json) != 0 {
+		err = json.Unmarshal(encoded_json, &save_items)
 		if err != nil {
 			return sendError(c, err.Error())
 		}
@@ -129,6 +146,7 @@ func main() {
 
 	// Routes
 	e.GET("/", root)
+	e.GET("/items", getItem)
 	e.POST("/items", addItem)
 	e.GET("/image/:itemImg", getImg)
 
