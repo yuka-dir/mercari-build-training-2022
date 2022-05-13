@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"encoding/json"
+	// "encoding/json"
 	"net/http"
 	"os"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -58,56 +59,21 @@ func getItem(c echo.Context) error {
 }
 
 func addItem(c echo.Context) error {
-	// Get form data
+	id, _ := strconv.Atoi(c.FormValue("id"))
 	name := c.FormValue("name")
 	category := c.FormValue("category")
-	c.Logger().Infof("Receive item: %s %s", name, category)
 
-	message := fmt.Sprintf("item received: %s", name)
-	res := Response{Message: message}
+	item := models.Item{Id: id, Name: name, Category: category}
 
-	// Create json file
-	f, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
+	success, err := models.AddItem(item)
+
+	if success {
+		message := fmt.Sprintf("item received: %s", item.Name)
+		res := Response{Message: message}
+		return c.JSON(http.StatusOK, res)
+	} else {
 		return sendError(c, err.Error())
 	}
-
-	// Setting close json file
-	defer f.Close()
-
-	// Read data to json file
-	items := []models.Item{}
-	save_items := models.Items{items}
-
-	encoded_json, err := readJsonFile()
-	if err != nil {
-		return sendError(c, err.Error())
-	}
-
-	// Parse encoded_json
-	if len(encoded_json) != 0 {
-		err = json.Unmarshal(encoded_json, &save_items)
-		if err != nil {
-			return sendError(c, err.Error())
-		}
-	}
-
-	// Add data to decode_data
-	append_item := models.Item{Name: name, Category: category}
-	save_items.Items = append(save_items.Items, append_item)
-
-	// Set indent and encoding as JSON
-	encode_items, err := json.MarshalIndent(save_items, "", " ")
-	if err != nil {
-		return sendError(c, err.Error())
-	}
-
-	// Write decode_data to json file
-	err = os.WriteFile("items.json", encode_items, 0644)
-	if err != nil {
-		return sendError(c, err.Error())
-	}
-	return c.JSON(http.StatusOK, res)
 }
 
 func getImg(c echo.Context) error {

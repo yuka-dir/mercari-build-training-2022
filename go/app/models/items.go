@@ -41,6 +41,29 @@ func GetItems() ([]Item, error) {
 	return items, err
 }
 
+func AddItem(newItem Item) (bool, error) {
+	tx, err := DB.Begin()
+	if err != nil {
+		return false, err
+	}
+
+	stmt, err := tx.Prepare("INSERT INTO items(id, name, category) VALUES(?, ?, ?)")
+	if err != nil {
+		return false, err
+	}
+
+	defer stmt.Close()
+
+	_, err = stmt.Exec(newItem.Id, newItem.Name, newItem.Category)
+	if err != nil {
+		return false, err
+	}
+
+	tx.Commit() // TODO: Should send err and check ?
+
+	return true, nil
+}
+
 func ConnectDatabase() error {
 	db, err := sql.Open("sqlite3", dbSource)
 	if err != nil {
