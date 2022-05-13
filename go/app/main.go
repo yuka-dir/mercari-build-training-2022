@@ -76,6 +76,20 @@ func addItem(c echo.Context) error {
 	}
 }
 
+func searchItem(c echo.Context) error {
+	key := c.FormValue("keyword")
+	items, err := models.SearchItem(key)
+	if err != nil {
+		return sendError(c, err.Error())
+	}
+	db_items := models.Items{items}
+	if db_items.Items == nil {
+		res := Response{Message: "No Records Found"}
+		return c.JSON(http.StatusBadRequest, res)
+	}
+	return c.JSON(http.StatusOK, db_items)
+}
+
 func getImg(c echo.Context) error {
 	// Create image path
 	imgPath := path.Join(ImgDir, c.Param("itemImg"))
@@ -115,6 +129,7 @@ func main() {
 	e.GET("/", root)
 	e.GET("/items", getItem)
 	e.POST("/items", addItem)
+	e.GET("/search", searchItem)
 	e.GET("/image/:itemImg", getImg)
 
 	// Start server

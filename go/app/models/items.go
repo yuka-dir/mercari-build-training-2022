@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -41,6 +42,7 @@ func GetItems() ([]Item, error) {
 	return items, err
 }
 
+
 func AddItem(newItem Item) (bool, error) {
 	tx, err := DB.Begin()
 	if err != nil {
@@ -62,6 +64,29 @@ func AddItem(newItem Item) (bool, error) {
 	tx.Commit() // TODO: Should send err and check ?
 
 	return true, nil
+}
+
+func SearchItem(key string) ([]Item, error) {
+	q := fmt.Sprintf("SELECT id, name, category FROM items WHERE name='%s' or category='%s'", key, key)
+	rows, err := DB.Query(q)
+	if (err != nil) {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	items := make([]Item, 0)
+	for rows.Next() {
+		var item Item
+		if err := rows.Scan(&item.Id, &item.Name, &item.Category); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, err
 }
 
 func ConnectDatabase() error {
