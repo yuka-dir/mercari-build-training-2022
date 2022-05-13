@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-	// "encoding/json"
 	"net/http"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -59,11 +57,10 @@ func getItem(c echo.Context) error {
 }
 
 func addItem(c echo.Context) error {
-	id, _ := strconv.Atoi(c.FormValue("id"))
 	name := c.FormValue("name")
 	category := c.FormValue("category")
 
-	item := models.Item{Id: id, Name: name, Category: category}
+	item := models.Item{Name: name, Category: category}
 
 	success, err := models.AddItem(item)
 

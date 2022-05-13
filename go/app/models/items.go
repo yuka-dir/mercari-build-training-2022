@@ -15,13 +15,12 @@ type Items struct {
 }
 
 type Item struct {
-	Id		 int	`json:"id"`
 	Name     string `json:"name"`
 	Category string `json:"category"`
 }
 
 func GetItems() ([]Item, error) {
-	rows, err := DB.Query("SELECT * FROM items")
+	rows, err := DB.Query("SELECT name, category FROM items")
 	if (err != nil) {
 		return nil, err
 	}
@@ -31,7 +30,7 @@ func GetItems() ([]Item, error) {
 	items := make([]Item, 0)
 	for rows.Next() {
 		var item Item
-		if err := rows.Scan(&item.Id, &item.Name, &item.Category); err != nil {
+		if err := rows.Scan(&item.Name, &item.Category); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -42,21 +41,20 @@ func GetItems() ([]Item, error) {
 	return items, err
 }
 
-
 func AddItem(newItem Item) (bool, error) {
 	tx, err := DB.Begin()
 	if err != nil {
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO items(id, name, category) VALUES(?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO items(name, category) VALUES(?, ?)")
 	if err != nil {
 		return false, err
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(newItem.Id, newItem.Name, newItem.Category)
+	_, err = stmt.Exec(newItem.Name, newItem.Category)
 	if err != nil {
 		return false, err
 	}
@@ -67,7 +65,7 @@ func AddItem(newItem Item) (bool, error) {
 }
 
 func SearchItem(key string) ([]Item, error) {
-	q := fmt.Sprintf("SELECT id, name, category FROM items WHERE name='%s' or category='%s'", key, key)
+	q := fmt.Sprintf("SELECT name, category FROM items WHERE name='%s' or category='%s'", key, key)
 	rows, err := DB.Query(q)
 	if (err != nil) {
 		return nil, err
@@ -78,7 +76,7 @@ func SearchItem(key string) ([]Item, error) {
 	items := make([]Item, 0)
 	for rows.Next() {
 		var item Item
-		if err := rows.Scan(&item.Id, &item.Name, &item.Category); err != nil {
+		if err := rows.Scan(&item.Name, &item.Category); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
