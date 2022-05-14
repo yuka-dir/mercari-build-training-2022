@@ -1,9 +1,11 @@
 package models
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -20,6 +22,7 @@ type Items struct {
 type Item struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`
+	Image string `json:"image"`
 }
 
 func SetupDatabase() error {
@@ -82,19 +85,33 @@ func GetItem(query string) ([]Item, error) {
 }
 
 func AddItem(newItem Item) (bool, error) {
+	// Check image extension
+	if !strings.HasSuffix(newItem.Image, ".jpg") {
+		return false, fmt.Errorf("Image path does not end with .jpg")
+	}
+
 	tx, err := DB.Begin()
 	if err != nil {
 		return false, err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO items(name, category) VALUES(?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO items(name, category, image) VALUES(?, ?, ?)")
 	if err != nil {
 		return false, err
 	}
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(newItem.Name, newItem.Category)
+	// Hashing
+	begin := strings.LastIndex(newItem.Image, "/") + 1
+	end := strings.Index(newItem.Image, ".")
+	imgName := newItem.Image[begin:end]
+
+	hashed := sha256.Sum256([]byte(imgName))
+
+	newItem.Image = fmt.Sprintf("%x", hashed) + ".jpg"
+
+	_, err = stmt.Exec(newItem.Name, newItem.Category, newItem.Image)
 	if err != nil {
 		return false, err
 	}

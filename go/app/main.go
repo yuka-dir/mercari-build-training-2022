@@ -51,8 +51,9 @@ func getItem(c echo.Context) error {
 func addItem(c echo.Context) error {
 	name := c.FormValue("name")
 	category := c.FormValue("category")
+	image := c.FormValue("image")
 
-	item := models.Item{Name: name, Category: category}
+	item := models.Item{Name: name, Category: category, Image: image}
 
 	success, err := models.AddItem(item)
 
