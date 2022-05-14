@@ -103,6 +103,13 @@ func getImg(c echo.Context) error {
 }
 
 func main() {
+	// Database
+	err := models.SetupDatabase()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s", err.Error())
+		return
+	}
+
 	e := echo.New()
 
 	// Middleware
@@ -118,9 +125,6 @@ func main() {
 		AllowOrigins: []string{front_url},
 		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
 	}))
-
-	// Connect Database
-	models.ConnectDatabase()
 
 	// Routes
 	e.GET("/", root)

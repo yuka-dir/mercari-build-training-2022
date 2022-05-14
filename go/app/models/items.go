@@ -3,11 +3,13 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var DB *sql.DB
+const dbSchema = "../db/items.db"
 const dbSource = "../db/mercari.sqlite3"
 
 type Items struct {
@@ -87,11 +89,30 @@ func SearchItem(key string) ([]Item, error) {
 	return items, err
 }
 
-func ConnectDatabase() error {
+func SetupDatabase() error {
+	// Connect database
 	db, err := sql.Open("sqlite3", dbSource)
 	if err != nil {
 		return err
 	}
 	DB = db
+
+	// Create items table
+	f, err := os.Open(dbSchema)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	schema, err := os.ReadFile(dbSchema)
+	if err != nil {
+		return err;
+	}
+
+	_, err = DB.Exec(string(schema))
+	if err != nil {
+		return err
+	}
 	return nil
 }
