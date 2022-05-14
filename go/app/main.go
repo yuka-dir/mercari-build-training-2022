@@ -11,11 +11,11 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 
-	"go/app/models"
+	"mercari-build-training-2022/app/models"
 )
 
 const (
-	ImgDir = "image"
+	ImgDir   = "image"
 	JsonFile = "items.json"
 )
 
@@ -30,26 +30,18 @@ func sendError(c echo.Context, err_message string) error {
 	return c.JSON(http.StatusInternalServerError, res)
 }
 
-func readJsonFile() ([]byte, error) {
-	encoded_json, err := os.ReadFile(JsonFile)
-	if err != nil {
-		return encoded_json, err
-	}
-	return encoded_json, nil
-}
-
 func root(c echo.Context) error {
 	res := Response{Message: "Hello, world!"}
 	return c.JSON(http.StatusOK, res)
 }
 
 func getItem(c echo.Context) error {
-	items, err := models.GetItems()
+	items, err := models.GetItem("")
 	if err != nil {
 		return sendError(c, err.Error())
 	}
-	db_items := models.Items{items}
-	if db_items.Items == nil {
+	db_items := models.Items{Items: items}
+	if len(db_items.Items) == 0 {
 		res := Response{Message: "No Records Found"}
 		return c.JSON(http.StatusBadRequest, res)
 	}
@@ -79,8 +71,8 @@ func searchItem(c echo.Context) error {
 	if err != nil {
 		return sendError(c, err.Error())
 	}
-	db_items := models.Items{items}
-	if db_items.Items == nil {
+	db_items := models.Items{Items: items}
+	if len(db_items.Items) == 0 {
 		res := Response{Message: "No Records Found"}
 		return c.JSON(http.StatusBadRequest, res)
 	}
