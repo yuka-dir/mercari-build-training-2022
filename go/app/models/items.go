@@ -81,27 +81,27 @@ func GetItem(query string) ([]Item, error) {
 	return items, err
 }
 
-func AddItem(newItem Item) (bool, error) {
+func AddItem(newItem Item) error {
 	tx, err := DB.Begin()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	stmt, err := tx.Prepare("INSERT INTO items(name, category) VALUES(?, ?)")
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	defer stmt.Close()
 
 	_, err = stmt.Exec(newItem.Name, newItem.Category)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	tx.Commit()
 
-	return true, nil
+	return nil
 }
 
 func SearchItem(key string) ([]Item, error) {

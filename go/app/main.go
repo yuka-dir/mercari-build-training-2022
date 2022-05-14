@@ -54,15 +54,13 @@ func addItem(c echo.Context) error {
 
 	item := models.Item{Name: name, Category: category}
 
-	success, err := models.AddItem(item)
-
-	if success {
+	err := models.AddItem(item)
+	if err != nil {
 		message := fmt.Sprintf("item received: %s", item.Name)
 		res := Response{Message: message}
 		return c.JSON(http.StatusOK, res)
-	} else {
-		return sendError(c, err.Error())
 	}
+	return sendError(c, err.Error())
 }
 
 func searchItem(c echo.Context) error {
