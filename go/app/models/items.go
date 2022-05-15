@@ -105,20 +105,20 @@ func GetItemById(id string) (Item, error) {
 	}
 }
 
-func AddItem(newItem Item) (bool, error) {
+func AddItem(newItem Item) error {
 	// Check image extension
 	if !strings.HasSuffix(newItem.Image, ".jpg") {
-		return false, fmt.Errorf("Image path does not end with .jpg")
+		return fmt.Errorf("Image path does not end with .jpg")
 	}
 
 	tx, err := DB.Begin()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	stmt, err := tx.Prepare("INSERT INTO items(name, category, image) VALUES(?, ?, ?)")
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	defer stmt.Close()
@@ -134,12 +134,12 @@ func AddItem(newItem Item) (bool, error) {
 
 	_, err = stmt.Exec(newItem.Name, newItem.Category, newItem.Image)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	tx.Commit()
 
-	return true, nil
+	return nil
 }
 
 func SearchItem(key string) ([]Item, error) {

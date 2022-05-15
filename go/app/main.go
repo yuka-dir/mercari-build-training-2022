@@ -16,16 +16,15 @@ import (
 
 const (
 	ImgDir   = "image"
-	// JsonFile = "items.json"
 )
 
 type Response struct {
 	Message string `json:"message"`
 }
 
-func sendError(c echo.Context, err_message string) error {
-	c.Logger().Errorf(err_message)
-	message := fmt.Sprintf("error: %s", err_message)
+func sendError(c echo.Context, errMessage string) error {
+	c.Logger().Errorf(errMessage)
+	message := fmt.Sprintf("error: %s", errMessage)
 	res := Response{Message: message}
 	return c.JSON(http.StatusInternalServerError, res)
 }
@@ -40,12 +39,12 @@ func getItem(c echo.Context) error {
 	if err != nil {
 		return sendError(c, err.Error())
 	}
-	db_items := models.Items{Items: items}
-	if len(db_items.Items) == 0 {
+	dbItems := models.Items{Items: items}
+	if len(dbItems.Items) == 0 {
 		res := Response{Message: "No Records Found"}
 		return c.JSON(http.StatusBadRequest, res)
 	}
-	return c.JSON(http.StatusOK, db_items)
+	return c.JSON(http.StatusOK, dbItems)
 }
 
 func getItemById(c echo.Context) error {
@@ -65,15 +64,13 @@ func addItem(c echo.Context) error {
 
 	item := models.Item{Name: name, Category: category, Image: image}
 
-	success, err := models.AddItem(item)
-
-	if success {
+	err := models.AddItem(item)
+	if err != nil {
 		message := fmt.Sprintf("item received: %s", item.Name)
 		res := Response{Message: message}
 		return c.JSON(http.StatusOK, res)
-	} else {
-		return sendError(c, err.Error())
 	}
+	return sendError(c, err.Error())
 }
 
 func searchItem(c echo.Context) error {
@@ -82,12 +79,12 @@ func searchItem(c echo.Context) error {
 	if err != nil {
 		return sendError(c, err.Error())
 	}
-	db_items := models.Items{Items: items}
-	if len(db_items.Items) == 0 {
+	dbItems := models.Items{Items: items}
+	if len(dbItems.Items) == 0 {
 		res := Response{Message: "No Records Found"}
 		return c.JSON(http.StatusBadRequest, res)
 	}
-	return c.JSON(http.StatusOK, db_items)
+	return c.JSON(http.StatusOK, dbItems)
 }
 
 func getImg(c echo.Context) error {
