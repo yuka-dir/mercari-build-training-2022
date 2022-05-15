@@ -10,8 +10,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const dbSchema = "../db/items.db"
-const dbSource = "../db/mercari.sqlite3"
+const (
+	dbSchema = "../db/items.db"
+	dbSource = "../db/mercari.sqlite3"
+)
 
 var DB *sql.DB
 
@@ -82,6 +84,25 @@ func GetItem(query string) ([]Item, error) {
 		return nil, err
 	}
 	return items, err
+}
+
+func GetItemById(id string) (Item, error) {
+	item := Item{}
+
+	stmt, err := DB.Prepare("SELECT name, category, image FROM items WHERE id = ?")
+	if err != nil {
+		return item, err
+	}
+
+	sqlErr := stmt.QueryRow(id).Scan(&item.Name, &item.Category, &item.Image)
+	switch {
+	case sqlErr == sql.ErrNoRows:
+		return item, fmt.Errorf("No item with id %s", id)
+	case sqlErr != nil:
+		return item, sqlErr
+	default:
+		return item, nil
+	}
 }
 
 func AddItem(newItem Item) (bool, error) {

@@ -16,7 +16,7 @@ import (
 
 const (
 	ImgDir   = "image"
-	JsonFile = "items.json"
+	// JsonFile = "items.json"
 )
 
 type Response struct {
@@ -46,6 +46,16 @@ func getItem(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, res)
 	}
 	return c.JSON(http.StatusOK, db_items)
+}
+
+func getItemById(c echo.Context) error {
+	id := c.Param("id")
+
+	item, err := models.GetItemById(id)
+	if err != nil {
+		return sendError(c, err.Error())
+	}
+	return c.JSON(http.StatusOK, item)
 }
 
 func addItem(c echo.Context) error {
@@ -122,6 +132,7 @@ func main() {
 	// Routes
 	e.GET("/", root)
 	e.GET("/items", getItem)
+	e.GET("/items/:id", getItemById)
 	e.POST("/items", addItem)
 	e.GET("/search", searchItem)
 	e.GET("/image/:itemImg", getImg)
