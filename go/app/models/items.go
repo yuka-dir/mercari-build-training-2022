@@ -1,6 +1,7 @@
 package models
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"database/sql"
 	"fmt"
@@ -24,7 +25,7 @@ type Items struct {
 type Item struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`
-	Image string `json:"image"`
+	Image string `json:"image_filename"`
 }
 
 func SetupDatabase() error {
@@ -43,13 +44,15 @@ func SetupDatabase() error {
 
 	defer f.Close()
 
-	schema, err := os.ReadFile(dbSchema)
-	if err != nil {
-		return err
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		// TODO: 構文チェックの処理
+		_, err = DB.Exec(scanner.Text())
+		if err != nil {
+			return err
+		}
 	}
-
-	_, err = DB.Exec(string(schema))
-	if err != nil {
+	if err = scanner.Err(); err != nil {
 		return err
 	}
 	return nil
@@ -57,7 +60,8 @@ func SetupDatabase() error {
 
 func GetItem(query string) ([]Item, error) {
 	if query == "" {
-		query = "SELECT name, category FROM items"
+		// query = "SELECT name, category FROM items"
+		query = "SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id= category.id)"
 	}
 
 	stmt, err := DB.Prepare(query)
@@ -75,7 +79,7 @@ func GetItem(query string) ([]Item, error) {
 	items := make([]Item, 0)
 	for rows.Next() {
 		var item Item
-		if err := rows.Scan(&item.Name, &item.Category); err != nil {
+		if err := rows.Scan(&item.Name, &item.Category, &item.Image); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -89,7 +93,8 @@ func GetItem(query string) ([]Item, error) {
 func GetItemById(id string) (Item, error) {
 	item := Item{}
 
-	stmt, err := DB.Prepare("SELECT name, category, image FROM items WHERE id = ?")
+	// stmt, err := DB.Prepare("SELECT name, category, image_filename FROM items WHERE id = ?")
+	stmt, err := DB.Prepare("SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id) WHERE items.id = ?")
 	if err != nil {
 		return item, err
 	}
@@ -116,12 +121,14 @@ func AddItem(newItem Item) error {
 		return err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO items(name, category, image) VALUES(?, ?, ?)")
+	stmt, err := tx.Prepare("INSERT INTO items(name, category_id, image_filename) VALUES(?, ?, ?)")
 	if err != nil {
 		return err
 	}
 
 	defer stmt.Close()
+
+	// TODO: Category_idをcategoryテーブルから取得、または新規作成
 
 	// Hashing
 	begin := strings.LastIndex(newItem.Image, "/") + 1
@@ -143,7 +150,9 @@ func AddItem(newItem Item) error {
 }
 
 func SearchItem(key string) ([]Item, error) {
-	q := fmt.Sprintf("SELECT name, category FROM items WHERE name='%s' or category='%s'", key, key)
+	// q := fmt.Sprintf("SELECT name, category FROM items WHERE name='%s' or category='%s'", key, key)
+	q := fmt.Sprintf("SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id) WHERE items.name='%s' or category.name='%s'",
+	                 key, key)
 
 	items, err := GetItem(q)
 
