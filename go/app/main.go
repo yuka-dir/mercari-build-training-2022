@@ -79,7 +79,7 @@ func searchItem(c echo.Context) error {
 
 func getImg(c echo.Context) error {
 	// Create image path
-	imgPath := path.Join(ImgDir, c.Param("itemImg"))
+	imgPath := path.Join(ImgDir, c.Param("imageFilename"))
 
 	if !strings.HasSuffix(imgPath, ".jpg") {
 		res := Response{Message: "Image path does not end with .jpg"}
@@ -121,7 +121,7 @@ func main() {
 	e.GET("/items", getItem)
 	e.POST("/items", addItem)
 	e.GET("/search", searchItem)
-	e.GET("/image/:itemImg", getImg)
+	e.GET("/image/:imageFilename", getImg)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":9000"))
