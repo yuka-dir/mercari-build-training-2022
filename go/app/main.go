@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"encoding/json"
 	"net/http"
 	"os"
 	"path"
@@ -11,10 +10,12 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+
+	"mercari-build-training-2022/app/models"
 )
 
 const (
-	ImgDir = "image"
+	ImgDir   = "image"
 	JsonFile = "items.json"
 )
 
@@ -22,28 +23,11 @@ type Response struct {
 	Message string `json:"message"`
 }
 
-type Items struct {
-	Items []Item `json:"items"`
-}
-
-type Item struct {
-	Name     string `json:"name"`
-	Category string `json:"category"`
-}
-
-func sendError(c echo.Context, err_message string) error {
-	c.Logger().Errorf(err_message)
-	message := fmt.Sprintf("error: %s", err_message)
+func sendError(c echo.Context, errMessage string) error {
+	c.Logger().Errorf(errMessage)
+	message := fmt.Sprintf("error: %s", errMessage)
 	res := Response{Message: message}
 	return c.JSON(http.StatusInternalServerError, res)
-}
-
-func readJsonFile() ([]byte, error) {
-	encoded_json, err := os.ReadFile(JsonFile)
-	if err != nil {
-		return encoded_json, err
-	}
-	return encoded_json, nil
 }
 
 func root(c echo.Context) error {
@@ -52,64 +36,45 @@ func root(c echo.Context) error {
 }
 
 func getItem(c echo.Context) error {
-	encoded_json, err := readJsonFile()
+	items, err := models.GetItem("")
 	if err != nil {
 		return sendError(c, err.Error())
 	}
-	return c.JSONBlob(http.StatusOK, encoded_json)
+	dbItems := models.Items{Items: items}
+	if len(dbItems.Items) == 0 {
+		res := Response{Message: "No Records Found"}
+		return c.JSON(http.StatusBadRequest, res)
+	}
+	return c.JSON(http.StatusOK, dbItems)
 }
 
 func addItem(c echo.Context) error {
-	// Get form data
 	name := c.FormValue("name")
 	category := c.FormValue("category")
-	c.Logger().Infof("Receive item: %s %s", name, category)
 
-	message := fmt.Sprintf("item received: %s", name)
-	res := Response{Message: message}
+	item := models.Item{Name: name, Category: category}
 
-	// Create json file
-	f, err := os.OpenFile("items.json", os.O_RDWR|os.O_CREATE, 0755)
+	err := models.AddItem(item)
+	if err != nil {
+		message := fmt.Sprintf("item received: %s", item.Name)
+		res := Response{Message: message}
+		return c.JSON(http.StatusOK, res)
+	}
+	return sendError(c, err.Error())
+}
+
+func searchItem(c echo.Context) error {
+	key := c.FormValue("keyword")
+	items, err := models.SearchItem(key)
 	if err != nil {
 		return sendError(c, err.Error())
 	}
-
-	// Setting close json file
-	defer f.Close()
-
-	// Read data to json file
-	items := []Item{}
-	save_items := Items{items}
-
-	encoded_json, err := readJsonFile()
-	if err != nil {
-		return sendError(c, err.Error())
+	dbItems := models.Items{Items: items}
+	if len(dbItems.Items) == 0 {
+		res := Response{Message: "No Records Found"}
+		return c.JSON(http.StatusBadRequest, res)
 	}
-
-	// Parse encoded_json
-	if len(encoded_json) != 0 {
-		err = json.Unmarshal(encoded_json, &save_items)
-		if err != nil {
-			return sendError(c, err.Error())
-		}
-	}
-
-	// Add data to decode_data
-	append_item := Item{Name: name, Category: category}
-	save_items.Items = append(save_items.Items, append_item)
-
-	// Set indent and encoding as JSON
-	encode_items, err := json.MarshalIndent(save_items, "", " ")
-	if err != nil {
-		return sendError(c, err.Error())
-	}
-
-	// Write decode_data to json file
-	err = os.WriteFile("items.json", encode_items, 0644)
-	if err != nil {
-		return sendError(c, err.Error())
-	}
-	return c.JSON(http.StatusOK, res)
+	return c.JSON(http.StatusOK, dbItems)
 }
 
 func getImg(c echo.Context) error {
@@ -128,6 +93,13 @@ func getImg(c echo.Context) error {
 }
 
 func main() {
+	// Database
+	err := models.SetupDatabase()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s", err.Error())
+		return
+	}
+
 	e := echo.New()
 
 	// Middleware
@@ -148,6 +120,7 @@ func main() {
 	e.GET("/", root)
 	e.GET("/items", getItem)
 	e.POST("/items", addItem)
+	e.GET("/search", searchItem)
 	e.GET("/image/:itemImg", getImg)
 
 	// Start server
