@@ -2,11 +2,9 @@ package models
 
 import (
 	"bufio"
-	"crypto/sha256"
 	"database/sql"
 	"fmt"
 	"os"
-	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -46,7 +44,6 @@ func SetupDatabase() error {
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		// TODO: 構文チェックの処理
 		_, err = DB.Exec(scanner.Text())
 		if err != nil {
 			return err
@@ -115,7 +112,6 @@ func insertNewCategory(categoryName string, tx *sql.Tx) (int, error) {
 	if err != nil {
 		return categoryId, err
 	}
-
 	defer stmt.Close()
 
 	sqlErr := stmt.QueryRow(categoryName).Scan(&categoryId)
@@ -126,11 +122,6 @@ func insertNewCategory(categoryName string, tx *sql.Tx) (int, error) {
 }
 
 func AddItem(newItem Item) error {
-	// Check image extension
-	if !strings.HasSuffix(newItem.Image, ".jpg") {
-		return fmt.Errorf("Image path does not end with .jpg")
-	}
-
 	tx, err := DB.Begin()
 	if err != nil {
 		return err
@@ -148,34 +139,15 @@ func AddItem(newItem Item) error {
 	sqlErr := stmt.QueryRow(newItem.Category).Scan(&categoryId)
 	switch {
 	case sqlErr == sql.ErrNoRows:
-		categoryId, err = insertNewCategory(newItem.Category, tx)
-		// // categoryテーブル作成
-		// stmt, err = tx.Prepare("INSERT INTO category(name) VALUES(?) RETURNING id")
-		// if err != nil {
-		// 	return err
-		// }
-		// defer stmt.Close()
-		// sqlErr2 := stmt.QueryRow(newItem.Category).Scan(&categoryId)
-		// switch {
-		// case sqlErr2 == sql.ErrNoRows:
-		// case sqlErr2 != nil:
-		// 	return sqlErr2
-		// default:
-		// // 新しく作成されたカテゴリーテーブルのIDを取得する
-		// }
+		var insertErr error
+		categoryId, insertErr = insertNewCategory(newItem.Category, tx)
+		if insertErr != nil {
+			return insertErr
+		}
 	case sqlErr != nil:
 		return sqlErr
 	default:
 	}
-
-	// Hashing
-	begin := strings.LastIndex(newItem.Image, "/") + 1
-	end := strings.Index(newItem.Image, ".")
-	imgName := newItem.Image[begin:end]
-
-	hashed := sha256.Sum256([]byte(imgName))
-
-	newItem.Image = fmt.Sprintf("%x", hashed) + ".jpg"
 
 	// Save data
 	stmt, err = tx.Prepare("INSERT INTO items(name, category_id, image_filename) VALUES(?, ?, ?)")

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -60,12 +62,41 @@ func getItemById(c echo.Context) error {
 func addItem(c echo.Context) error {
 	name := c.FormValue("name")
 	category := c.FormValue("category")
-	image := c.FormValue("image")
 
-	item := models.Item{Name: name, Category: category, Image: image}
-
-	err := models.AddItem(item)
+	// Read file
+	image, err := c.FormFile("image")
 	if err != nil {
+		return sendError(c, err.Error())
+	}
+	if !strings.HasSuffix(image.Filename, ".jpg") {
+		return sendError(c, "Image path does not end with .jpg")
+	}
+	src, err := image.Open()
+	if err != nil {
+		return sendError(c, err.Error())
+	}
+	defer src.Close()
+
+	// Hashing
+	extension := strings.Index(image.Filename, ".")
+	hashed := sha256.Sum256([]byte(image.Filename[:extension]))
+	hashedImgName := fmt.Sprintf("%x", hashed) + ".jpg"
+
+	// Destination
+	dst, err := os.Create(path.Join(ImgDir, hashedImgName))
+	if err != nil {
+		return sendError(c, err.Error())
+	}
+	defer dst.Close()
+
+	// Copy
+	if _, err = io.Copy(dst, src); err != nil {
+		return sendError(c, err.Error())
+	}
+
+	item := models.Item{Name: name, Category: category, Image: hashedImgName}
+
+	if err = models.AddItem(item); err != nil {
 		return sendError(c, err.Error())
 	}
 	message := fmt.Sprintf("item received: %s", item.Name)
