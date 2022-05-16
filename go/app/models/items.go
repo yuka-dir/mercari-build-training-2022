@@ -60,8 +60,7 @@ func SetupDatabase() error {
 
 func GetItem(query string) ([]Item, error) {
 	if query == "" {
-		// query = "SELECT name, category FROM items"
-		query = "SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id= category.id)"
+		query = "SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id)"
 	}
 
 	stmt, err := DB.Prepare(query)
@@ -93,7 +92,6 @@ func GetItem(query string) ([]Item, error) {
 func GetItemById(id string) (Item, error) {
 	item := Item{}
 
-	// stmt, err := DB.Prepare("SELECT name, category, image_filename FROM items WHERE id = ?")
 	stmt, err := DB.Prepare("SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id) WHERE items.id = ?")
 	if err != nil {
 		return item, err
@@ -110,6 +108,23 @@ func GetItemById(id string) (Item, error) {
 	}
 }
 
+func insertNewCategory(categoryName string, tx *sql.Tx) (int, error) {
+	var categoryId int
+
+	stmt, err := tx.Prepare("INSERT INTO category(name) VALUES(?) RETURNING id")
+	if err != nil {
+		return categoryId, err
+	}
+
+	defer stmt.Close()
+
+	sqlErr := stmt.QueryRow(categoryName).Scan(&categoryId)
+	if sqlErr == sql.ErrNoRows || sqlErr != nil {
+		return categoryId, sqlErr
+	}
+	return categoryId, nil
+}
+
 func AddItem(newItem Item) error {
 	// Check image extension
 	if !strings.HasSuffix(newItem.Image, ".jpg") {
@@ -121,14 +136,37 @@ func AddItem(newItem Item) error {
 		return err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO items(name, category_id, image_filename) VALUES(?, ?, ?)")
+	// Get id from category table
+	stmt, err := tx.Prepare("SELECT category.id FROM category WHERE category.name = ?")
 	if err != nil {
 		return err
 	}
-
 	defer stmt.Close()
 
-	// TODO: Category_idをcategoryテーブルから取得、または新規作成
+	var categoryId int
+
+	sqlErr := stmt.QueryRow(newItem.Category).Scan(&categoryId)
+	switch {
+	case sqlErr == sql.ErrNoRows:
+		categoryId, err = insertNewCategory(newItem.Category, tx)
+		// // categoryテーブル作成
+		// stmt, err = tx.Prepare("INSERT INTO category(name) VALUES(?) RETURNING id")
+		// if err != nil {
+		// 	return err
+		// }
+		// defer stmt.Close()
+		// sqlErr2 := stmt.QueryRow(newItem.Category).Scan(&categoryId)
+		// switch {
+		// case sqlErr2 == sql.ErrNoRows:
+		// case sqlErr2 != nil:
+		// 	return sqlErr2
+		// default:
+		// // 新しく作成されたカテゴリーテーブルのIDを取得する
+		// }
+	case sqlErr != nil:
+		return sqlErr
+	default:
+	}
 
 	// Hashing
 	begin := strings.LastIndex(newItem.Image, "/") + 1
@@ -139,20 +177,28 @@ func AddItem(newItem Item) error {
 
 	newItem.Image = fmt.Sprintf("%x", hashed) + ".jpg"
 
-	_, err = stmt.Exec(newItem.Name, newItem.Category, newItem.Image)
+	// Save data
+	stmt, err = tx.Prepare("INSERT INTO items(name, category_id, image_filename) VALUES(?, ?, ?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(newItem.Name, categoryId, newItem.Image)
 	if err != nil {
 		return err
 	}
 
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func SearchItem(key string) ([]Item, error) {
-	// q := fmt.Sprintf("SELECT name, category FROM items WHERE name='%s' or category='%s'", key, key)
-	q := fmt.Sprintf("SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id) WHERE items.name='%s' or category.name='%s'",
-	                 key, key)
+	q := fmt.Sprintf("SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id) WHERE items.name = '%s' or category.name = '%s'",
+					 key, key)
 
 	items, err := GetItem(q)
 

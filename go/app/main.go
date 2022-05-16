@@ -66,11 +66,11 @@ func addItem(c echo.Context) error {
 
 	err := models.AddItem(item)
 	if err != nil {
-		message := fmt.Sprintf("item received: %s", item.Name)
-		res := Response{Message: message}
-		return c.JSON(http.StatusOK, res)
+		return sendError(c, err.Error())
 	}
-	return sendError(c, err.Error())
+	message := fmt.Sprintf("item received: %s", item.Name)
+	res := Response{Message: message}
+	return c.JSON(http.StatusOK, res)
 }
 
 func searchItem(c echo.Context) error {
