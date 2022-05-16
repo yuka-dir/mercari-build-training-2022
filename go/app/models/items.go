@@ -23,7 +23,7 @@ type Items struct {
 type Item struct {
 	Name     string `json:"name"`
 	Category string `json:"category"`
-	Image string `json:"image_filename"`
+	Image    string `json:"image_filename"`
 }
 
 func SetupDatabase() error {
@@ -170,7 +170,7 @@ func AddItem(newItem Item) error {
 
 func SearchItem(key string) ([]Item, error) {
 	q := fmt.Sprintf("SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id) WHERE items.name = '%s' or category.name = '%s'",
-					 key, key)
+		key, key)
 
 	items, err := GetItem(q)
 
