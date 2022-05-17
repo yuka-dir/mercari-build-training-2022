@@ -1,4 +1,22 @@
-FROM alpine
+# syntax=docker/dockerfile:1
 
-# STEP4-4では以下は変更しない
-CMD ["go", "version"]
+FROM golang:1.18.2-alpine
+
+ENV APP_DIR=/app
+
+RUN apk update && apk add --no-cache \
+    gcc \
+    musl-dev;
+
+# Copy necessary files
+WORKDIR $APP_DIR
+COPY db/ ./db/
+COPY go/ ./go/
+
+# Install dependent libraries
+WORKDIR $APP_DIR/go
+RUN go mod tidy
+
+EXPOSE 9000
+
+CMD ["go", "run", "app/main.go"]
