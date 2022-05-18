@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"crypto/sha256"
+	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,7 +20,11 @@ import (
 
 const (
 	ImgDir = "images"
+	dbSchema = "../db/items.db"
+	dbSource = "../db/mercari.sqlite3"
 )
+
+var DB *sql.DB
 
 type Response struct {
 	Message string `json:"message"`
@@ -36,8 +42,37 @@ func root(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+func setupDatabase() error {
+	// Connect database
+	db, err := sql.Open("sqlite3", dbSource)
+	if err != nil {
+		return err
+	}
+	DB = db
+
+	// Create items table
+	f, err := os.Open(dbSchema)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		_, err = DB.Exec(scanner.Text())
+		if err != nil {
+			return err
+		}
+	}
+	if err = scanner.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func getItem(c echo.Context) error {
-	items, err := models.GetItem("")
+	items, err := models.GetItem(DB, "")
 	if err != nil {
 		return sendError(c, err.Error())
 	}
@@ -52,7 +87,7 @@ func getItem(c echo.Context) error {
 func getItemById(c echo.Context) error {
 	id := c.Param("id")
 
-	item, err := models.GetItemById(id)
+	item, err := models.GetItemById(DB, id)
 	if err != nil {
 		return sendError(c, err.Error())
 	}
@@ -96,7 +131,7 @@ func addItem(c echo.Context) error {
 
 	item := models.Item{Name: name, Category: category, Image: hashedImgName}
 
-	if err = models.AddItem(item); err != nil {
+	if err = models.AddItem(DB, item); err != nil {
 		return sendError(c, err.Error())
 	}
 	message := fmt.Sprintf("item received: %s", item.Name)
@@ -106,7 +141,7 @@ func addItem(c echo.Context) error {
 
 func searchItem(c echo.Context) error {
 	key := c.FormValue("keyword")
-	items, err := models.SearchItem(key)
+	items, err := models.SearchItem(DB, key)
 	if err != nil {
 		return sendError(c, err.Error())
 	}
@@ -128,7 +163,7 @@ func getImg(c echo.Context) error {
 	// get image from item id
 	extension := strings.Index(imgPath, ".")
 	id := imgPath[:extension]
-	item, err := models.GetItemById(id)
+	item, err := models.GetItemById(DB, id)
 	if err == nil {
 		// Create image path
 		imgPath = path.Join(ImgDir, item.Image)
@@ -142,7 +177,7 @@ func getImg(c echo.Context) error {
 
 func main() {
 	// Database
-	err := models.SetupDatabase()
+	err := setupDatabase()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s", err.Error())
 		return
