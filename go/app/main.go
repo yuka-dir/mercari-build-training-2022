@@ -119,12 +119,19 @@ func searchItem(c echo.Context) error {
 }
 
 func getImg(c echo.Context) error {
-	// Create image path
-	imgPath := path.Join(ImgDir, c.Param("imageFilename"))
-
+	imgPath := c.Param("imageFilename")
 	if !strings.HasSuffix(imgPath, ".jpg") {
 		res := Response{Message: "Image path does not end with .jpg"}
 		return c.JSON(http.StatusBadRequest, res)
+	}
+
+	// get image from item id
+	extension := strings.Index(imgPath, ".")
+	id := imgPath[:extension]
+	item, err := models.GetItemById(id)
+	if err == nil {
+		// Create image path
+		imgPath = path.Join(ImgDir, item.Image)
 	}
 	if _, err := os.Stat(imgPath); err != nil {
 		c.Logger().Debugf("Image not found: %s", imgPath)
