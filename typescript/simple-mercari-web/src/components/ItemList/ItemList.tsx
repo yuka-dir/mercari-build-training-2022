@@ -52,9 +52,9 @@ export const ItemList: React.FC<Prop> = (props) => {
             {/* TODO: Task 1: Replace the placeholder image with the item image */}
             <img src={`http://127.0.0.1:9000/image/${item.id}.jpg`} />
             <p>
-              <span>Name: {item.name}</span>
+              <span><b>Name: {item.name}</b></span>
               <br />
-              <span>Category: {item.category}</span>
+              <span><b>Category: {item.category}</b></span>
             </p>
           </div>
         )
