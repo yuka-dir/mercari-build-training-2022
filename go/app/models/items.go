@@ -21,6 +21,7 @@ type Items struct {
 }
 
 type Item struct {
+	Id       int	`json:"id"`
 	Name     string `json:"name"`
 	Category string `json:"category"`
 	Image    string `json:"image_filename"`
@@ -57,7 +58,7 @@ func SetupDatabase() error {
 
 func GetItem(query string) ([]Item, error) {
 	if query == "" {
-		query = "SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id)"
+		query = "SELECT items.id, items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id)"
 	}
 
 	stmt, err := DB.Prepare(query)
@@ -75,7 +76,7 @@ func GetItem(query string) ([]Item, error) {
 	items := make([]Item, 0)
 	for rows.Next() {
 		var item Item
-		if err := rows.Scan(&item.Name, &item.Category, &item.Image); err != nil {
+		if err := rows.Scan(&item.Id, &item.Name, &item.Category, &item.Image); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
