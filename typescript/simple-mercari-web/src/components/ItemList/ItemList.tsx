@@ -50,15 +50,15 @@ export const ItemList: React.FC<Prop> = (props) => {
         return (
           <div key={item.id} className='ItemList'>
             <div className='ItemImage'>
-              <img src={`http://127.0.0.1:9000/image/${item.id}.jpg`} />
+              <img src={`http://127.0.0.1:9000/image/${item.id}.jpg`} alt=""/>
             </div>
             <div className='ItemName'>
               <span><b>Name: {item.name}</b></span>
             </div>
-              <br />
+              <br/>
             <p>
               <div className='ItemInfo'>
-                <span><b>Category: {item.category}</b></span><br />
+                <span><b>Category: {item.category}</b></span><br/>
               </div>
             </p>
           </div>
