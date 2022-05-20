@@ -1,66 +1,29 @@
 package models
 
 import (
-	"bufio"
 	"database/sql"
 	"fmt"
-	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
-
-const (
-	dbSchema = "../db/items.db"
-	dbSource = "../db/mercari.sqlite3"
-)
-
-var DB *sql.DB
 
 type Items struct {
 	Items []Item `json:"items"`
 }
 
 type Item struct {
+	Id       int	`json:"id"`
 	Name     string `json:"name"`
 	Category string `json:"category"`
 	Image    string `json:"image_filename"`
 }
 
-func SetupDatabase() error {
-	// Connect database
-	db, err := sql.Open("sqlite3", dbSource)
-	if err != nil {
-		return err
-	}
-	DB = db
-
-	// Create items table
-	f, err := os.Open(dbSchema)
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		_, err = DB.Exec(scanner.Text())
-		if err != nil {
-			return err
-		}
-	}
-	if err = scanner.Err(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func GetItem(query string) ([]Item, error) {
+func GetItem(db *sql.DB, query string) ([]Item, error) {
 	if query == "" {
-		query = "SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id)"
+		query = "SELECT items.id, items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id)"
 	}
 
-	stmt, err := DB.Prepare(query)
+	stmt, err := db.Prepare(query)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +38,7 @@ func GetItem(query string) ([]Item, error) {
 	items := make([]Item, 0)
 	for rows.Next() {
 		var item Item
-		if err := rows.Scan(&item.Name, &item.Category, &item.Image); err != nil {
+		if err := rows.Scan(&item.Id, &item.Name, &item.Category, &item.Image); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -86,10 +49,10 @@ func GetItem(query string) ([]Item, error) {
 	return items, err
 }
 
-func GetItemById(id string) (Item, error) {
+func GetItemById(db *sql.DB, id string) (Item, error) {
 	item := Item{}
 
-	stmt, err := DB.Prepare("SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id) WHERE items.id = ?")
+	stmt, err := db.Prepare("SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id) WHERE items.id = ?")
 	if err != nil {
 		return item, err
 	}
@@ -121,8 +84,8 @@ func insertNewCategory(categoryName string, tx *sql.Tx) (int, error) {
 	return categoryId, nil
 }
 
-func AddItem(newItem Item) error {
-	tx, err := DB.Begin()
+func AddItem(db *sql.DB, newItem Item) error {
+	tx, err := db.Begin()
 	if err != nil {
 		return err
 	}
@@ -168,11 +131,11 @@ func AddItem(newItem Item) error {
 	return nil
 }
 
-func SearchItem(key string) ([]Item, error) {
+func SearchItem(db *sql.DB, key string) ([]Item, error) {
 	q := fmt.Sprintf("SELECT items.name, category.name, items.image_filename FROM items INNER JOIN category ON (items.category_id = category.id) WHERE items.name = '%s' or category.name = '%s'",
 		key, key)
 
-	items, err := GetItem(q)
+	items, err := GetItem(db, q)
 
 	return items, err
 }
