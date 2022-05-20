@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: ./typescript/simple-mercari-web/dockerfile
+    image: build2022/web:latest
     ports:
       - "3000:3000"
     environment:
@@ -13,6 +14,7 @@ services:
     build:
       context: .
       dockerfile: ./go/dockerfile
+    image: build2022/app:latest
     ports:
       - "9000:9000"
     environment:
