@@ -10,7 +10,7 @@ RUN apk update && apk add --no-cache \
 
 # Copy necessary files
 WORKDIR $APP_DIR
-COPY db/ ./db/
+COPY db/items.db ./db/items.db
 COPY go/ ./go/
 
 # Install dependent libraries

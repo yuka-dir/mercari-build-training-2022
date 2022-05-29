@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	ImgDir = "images"
+	ImgDir   = "images"
 	dbSchema = "../db/items.db"
 	dbSource = "../db/mercari.sqlite3"
 )
@@ -77,10 +77,6 @@ func getItem(c echo.Context) error {
 		return sendError(c, err.Error())
 	}
 	dbItems := models.Items{Items: items}
-	if len(dbItems.Items) == 0 {
-		res := Response{Message: "No Records Found"}
-		return c.JSON(http.StatusBadRequest, res)
-	}
 	return c.JSON(http.StatusOK, dbItems)
 }
 
@@ -206,7 +202,6 @@ func main() {
 	e.POST("/items", addItem)
 	e.GET("/search", searchItem)
 	e.GET("/image/:imageFilename", getImg)
-
 
 	// Start server
 	e.Logger.Fatal(e.Start(":9000"))

@@ -12,7 +12,7 @@ type Items struct {
 }
 
 type Item struct {
-	Id       int	`json:"id"`
+	Id       int    `json:"id"`
 	Name     string `json:"name"`
 	Category string `json:"category"`
 	Image    string `json:"image_filename"`
