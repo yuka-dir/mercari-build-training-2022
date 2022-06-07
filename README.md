@@ -31,7 +31,7 @@ The following icons indicate pointers for
 - [x] **STEP4** Docker ([JA](document/step4.ja.md)/[EN](document/step4.en.md))
 - [x] **STEP5** (Stretch) Frontend ([JA](document/step5.ja.md)
   /[EN](document/step5.en.md))
-- [ ] **STEP6** (Stretch)  Run on docker-compose ([JA](document/step6.ja.md)
+- [x] **STEP6** (Stretch)  Run on docker-compose ([JA](document/step6.ja.md)
   /[EN](document/step6.en.md))
 
 ### Other documents
